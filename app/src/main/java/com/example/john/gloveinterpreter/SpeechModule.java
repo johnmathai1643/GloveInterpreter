@@ -31,6 +31,7 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
 
     @Override
     public void onInit(int status) {
+        myTestNetwork.run_network();
         if (status == TextToSpeech.SUCCESS) {
             int result = tts.setLanguage(Locale.US);
             if (result == TextToSpeech.LANG_MISSING_DATA
