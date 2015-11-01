@@ -1,5 +1,6 @@
 package com.example.john.gloveinterpreter;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.Nullable;
@@ -17,6 +18,9 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
     private String text;
     public TestNeuralNetwork myTestNetwork;
 
+    public SpeechModule(){
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -31,7 +35,7 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
 
     @Override
     public void onInit(int status) {
-        myTestNetwork.run_network();
+//        myTestNetwork.run_network();
         if (status == TextToSpeech.SUCCESS) {
             int result = tts.setLanguage(Locale.US);
             if (result == TextToSpeech.LANG_MISSING_DATA
@@ -47,5 +51,13 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
 
     private void speakOut() {
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        ((MainActivity) activity).onSectionAttached(
+                getArguments().getInt("section_number"));
+
     }
 }
