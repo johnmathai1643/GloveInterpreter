@@ -15,6 +15,7 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
     View rootView;
     private TextToSpeech tts;
     private String text;
+    public TestNeuralNetwork myTestNetwork;
 
     @Nullable
     @Override
@@ -24,6 +25,7 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
         text = bundle.getString("text", "empty");
 
         tts = new TextToSpeech(getActivity(), this);
+        myTestNetwork = new TestNeuralNetwork();
         return rootView;
     }
 
