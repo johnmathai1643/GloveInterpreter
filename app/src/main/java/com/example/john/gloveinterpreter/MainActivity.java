@@ -108,7 +108,6 @@ public class MainActivity extends ActionBarActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             this.startActivity(intent);
@@ -116,6 +115,11 @@ public class MainActivity extends ActionBarActivity
         }
         if (id == R.id.action_devices) {
             Intent intent = new Intent(this, BluetoothActivity.class);
+            this.startActivity(intent);
+            return true;
+        }
+        if (id == R.id.action_talk) {
+            Intent intent = new Intent(this, BluetoothTalk.class);
             this.startActivity(intent);
             return true;
         }

@@ -33,6 +33,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
 //        mHandler.postDelayed(mUpdateUITimerTask, 3000);
         alpha.setText("0");
         i=0;
+
         rootView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -43,8 +44,6 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
 
         return rootView;
     }
-
-
 
     private final Handler mHandler = new Handler();
     private final Runnable mUpdateUITimerTask = new Runnable() {
@@ -117,7 +116,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     }
 
     private void speakOut(String text) {
-        tts.setSpeechRate(0.75f);
+        tts.setSpeechRate(0.8f);
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
     }
 }
