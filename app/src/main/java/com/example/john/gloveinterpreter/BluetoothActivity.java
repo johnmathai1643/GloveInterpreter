@@ -12,10 +12,11 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import java.util.Set;
 
 
-public class BluetoothActivity extends Activity{
+public class BluetoothActivity extends Activity {
     private static final String TAG = "DeviceListActivity";
     private static final boolean D = true;
 
@@ -30,6 +31,7 @@ public class BluetoothActivity extends Activity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
+
     }
 
     @Override
@@ -70,7 +72,7 @@ public class BluetoothActivity extends Activity{
             String info = ((TextView) v).getText().toString();
             String address = info.substring(info.length() - 17);
 
-            Intent i = new Intent(BluetoothActivity.this, BluetoothTalk.class);
+            Intent i = new Intent(BluetoothActivity.this, MainActivity.class);
             i.putExtra(EXTRA_DEVICE_ADDRESS, address);
             startActivity(i);
         }

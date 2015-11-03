@@ -118,6 +118,8 @@ public class NeuralNetwork  {
         neuronCount = inputCount + hiddenCount + outputCount;
         weightCount = (inputCount * hiddenCount) + (hiddenCount * outputCount);
 
+
+
         fire    = new double[neuronCount];
         matrix   = new double[weightCount];
         matrixDelta = new double[weightCount];
@@ -134,7 +136,7 @@ public class NeuralNetwork  {
 
 
     /**
-     * Returns the root mean square error for a complet training set.
+     * Returns the root mean square error for a complete training set.
      *
      * @param len The length of a complete training set.
      * @return The current error for the neural network.

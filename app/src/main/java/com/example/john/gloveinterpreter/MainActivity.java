@@ -25,6 +25,9 @@ public class MainActivity extends ActionBarActivity
      */
     private CharSequence mTitle;
 
+    private static String address;
+    public static String EXTRA_DEVICE_ADDRESS = "device_address";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,11 +36,30 @@ public class MainActivity extends ActionBarActivity
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
         mTitle = getTitle();
-
+        address = null;
         // Set up the drawer.
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Intent intent = getIntent();
+        address = intent.getStringExtra(BluetoothActivity.EXTRA_DEVICE_ADDRESS);
+        if(address!=null) {
+            Fragment Calibrationfragment = new CalibrationModule();
+            Bundle bundle = new Bundle();
+            bundle.putInt("section_number", 1);
+            bundle.putString(EXTRA_DEVICE_ADDRESS, address);
+            Calibrationfragment.setArguments(bundle);
+
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, Calibrationfragment)
+                    .commit();
+        }
     }
 
     @Override

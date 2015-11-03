@@ -14,6 +14,9 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.UUID;
 
@@ -23,25 +26,25 @@ import java.util.UUID;
 
 public class BluetoothTalk extends Activity {
 
-    TextView txtArduino, txtString, txtStringLength, sensorView0, sensorView1, sensorView2, sensorView3, sensorView4;
+    TextView txtString, txtStringLength, sensorView0, sensorView1, sensorView2, sensorView3, sensorView4;
     static private Handler bluetoothIn;
 
     final int handlerState = 0;
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder recDataString = new StringBuilder();
-
+    private  List<List<Double>> xorInputList;
+    private List<Double> xorInputRow;
     private ConnectedThread mConnectedThread;
 //    f000aa00-0451-4000-b000-000000000000
 //    f000aa01-0451-4000-b000-000000000000
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
     private static String address;
+    public double[][] xorInput;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_talk);
 
         txtString = (TextView) findViewById(R.id.txtString);
@@ -51,14 +54,21 @@ public class BluetoothTalk extends Activity {
         sensorView2 = (TextView) findViewById(R.id.sensorView2);
         sensorView3 = (TextView) findViewById(R.id.sensorView3);
         sensorView4 = (TextView) findViewById(R.id.sensorView4);
+        xorInputList = new ArrayList<>();
+        xorInputRow = new ArrayList<>();
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        checkBTState();
+    }
 
-
+    @Override
+    public void onStart() {
+        super.onStart();
         bluetoothIn = new Handler() {
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {                                     //if message is what we want
                     String readMessage = (String) msg.obj;                                                                // msg.arg1 = bytes from connect thread
                     recDataString.append(readMessage);
-                    Log.d("DATA_2:",readMessage);
+                    Log.d("DATA_2:", readMessage);
 
                     int endOfLineIndex = recDataString.indexOf("~");                    // determine the end-of-line
                     if (endOfLineIndex > 0) {                                           // make sure there data before ~
@@ -69,7 +79,7 @@ public class BluetoothTalk extends Activity {
 
                         if (recDataString.charAt(0) == '#')                             //if it starts with # we know it is what we are looking for
                         {
-                              dataInPrint = dataInPrint.substring(1);
+                            dataInPrint = dataInPrint.substring(1);
 
                             StringTokenizer tokens = new StringTokenizer(dataInPrint, "+");
                             String sensor0 = tokens.nextToken().trim();
@@ -84,22 +94,16 @@ public class BluetoothTalk extends Activity {
                             sensorView3.setText(" Sensor 3 Voltage = " + sensor3 + "V");
                             sensorView4.setText(" Sensor 3 Voltage = " + sensor4 + "V");
 
+                            List<Double> xorInputRow = Arrays.asList(Double.parseDouble(sensor0),Double.parseDouble(sensor1),Double.parseDouble(sensor2),Double.parseDouble(sensor3),Double.parseDouble(sensor4));
+                            xorInputList.add(xorInputRow);
                         }
                         recDataString.delete(0, recDataString.length());                    //clear all string data
-                        // strIncom =" ";
                         dataInPrint = " ";
                     }
 
                 }
             }
         };
-        btAdapter = BluetoothAdapter.getDefaultAdapter();
-        checkBTState();
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
 
     }
 
@@ -128,8 +132,8 @@ public class BluetoothTalk extends Activity {
             {
                 btSocket.close();
             } catch (IOException e2)
-            {
-                //exception
+            { // exception
+                xorInput = convert_array_list(xorInputList);
             }
         }
         mConnectedThread = new ConnectedThread(btSocket);
@@ -146,6 +150,21 @@ public class BluetoothTalk extends Activity {
           btSocket.close();
         } catch (IOException e2) {
         }
+    }
+
+    private double[][] convert_array_list(List<List<Double>> xorInputList){
+
+        final Double[][] xorInputDouble = new Double[xorInputList.size()][];
+        int i = 0;
+        for (List<Double> l : xorInputList)
+            xorInputDouble[i++] = l.toArray(new Double[l.size()]);
+
+        double [][] xorInput  = new double[xorInputDouble.length][];
+        for (int j = 0; j < xorInputDouble.length; i++)
+            for (int k = 0; i < xorInputDouble[0].length; i++)
+                xorInput[j][k] = xorInputDouble[j][k];
+
+        return xorInput;
     }
 
     private void checkBTState() {
