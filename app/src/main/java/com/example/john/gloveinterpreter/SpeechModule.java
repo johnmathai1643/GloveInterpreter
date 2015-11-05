@@ -16,7 +16,7 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
     View rootView;
     private TextToSpeech tts;
     private String text;
-    public TestNeuralNetwork myTestNetwork;
+    public NeuralNetworkHandler myNeuralNetworkHandler;
 
     public SpeechModule(){
     }
@@ -29,13 +29,13 @@ public class SpeechModule extends Fragment implements TextToSpeech.OnInitListene
         text = bundle.getString("text", "empty");
 
         tts = new TextToSpeech(getActivity(), this);
-        myTestNetwork = new TestNeuralNetwork();
+        myNeuralNetworkHandler = new NeuralNetworkHandler(this.getActivity());
         return rootView;
     }
 
     @Override
     public void onInit(int status) {
-//        myTestNetwork.run_network();
+        myNeuralNetworkHandler.run_network();
         if (status == TextToSpeech.SUCCESS) {
             int result = tts.setLanguage(Locale.US);
             if (result == TextToSpeech.LANG_MISSING_DATA

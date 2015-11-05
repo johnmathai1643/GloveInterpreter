@@ -1,5 +1,8 @@
 package com.example.john.gloveinterpreter;
 
+import android.content.Context;
+import android.util.Log;
+
 /**
  * Created by john on 11/1/15.
  */
@@ -43,45 +46,45 @@ public class NeuralNetwork  {
     /**
      * The outputs from the various levels.
      */
-    protected double fire[];
+    protected double[] fire;
 
     /**
      * The weight matrix this, along with the thresholds can be
      * thought of as the "memory" of the neural network.
      */
-    protected double matrix[];
+    protected double[] matrix;
 
     /**
      * The errors from the last calculation.
      */
-    protected double error[];
+    protected double[] error;
 
     /**
      * Accumulates matrix delta's for training.
      */
-    protected double accMatrixDelta[];
+    protected double[] accMatrixDelta;
 
     /**
      * The thresholds, this value, along with the weight matrix
      * can be thought of as the memory of the neural network.
      */
-    protected double thresholds[];
+    protected double[] thresholds;
 
     /**
      * The changes that should be applied to the weight
      * matrix.
      */
-    protected double matrixDelta[];
+    protected double[] matrixDelta;
 
     /**
      * The accumulation of the threshold deltas.
      */
-    protected double accThresholdDelta[];
+    protected double[] accThresholdDelta;
 
     /**
      * The threshold deltas.
      */
-    protected double thresholdDelta[];
+    protected double[] thresholdDelta;
 
     /**
      * The momentum for training.
@@ -91,23 +94,24 @@ public class NeuralNetwork  {
     /**
      * The changes in the errors.
      */
-    protected double errorDelta[];
+    protected double[] errorDelta;
 
-
+    private SQLiteHelper db;
+    private Context context;
     /**
      * Construct the neural network.
-     *
-     * @param inputCount The number of input neurons.
+     *  @param inputCount The number of input neurons.
      * @param hiddenCount The number of hidden neurons
      * @param outputCount The number of output neurons
      * @param learnRate The learning rate to be used when training.
      * @param momentum The momentum to be used when training.
+     * @param context
      */
     public NeuralNetwork(int inputCount,
-                   int hiddenCount,
-                   int outputCount,
-                   double learnRate,
-                   double momentum) {
+                         int hiddenCount,
+                         int outputCount,
+                         double learnRate,
+                         double momentum, Context context) {
 
         this.learnRate = learnRate;
         this.momentum = momentum;
@@ -115,6 +119,7 @@ public class NeuralNetwork  {
         this.inputCount = inputCount;
         this.hiddenCount = hiddenCount;
         this.outputCount = outputCount;
+        this.context = context;
         neuronCount = inputCount + hiddenCount + outputCount;
         weightCount = (inputCount * hiddenCount) + (hiddenCount * outputCount);
 
@@ -129,11 +134,9 @@ public class NeuralNetwork  {
         accThresholdDelta = new double[neuronCount];
         accMatrixDelta = new double[weightCount];
         thresholdDelta = new double[neuronCount];
-
+        db = new SQLiteHelper(context);
         reset();
     }
-
-
 
     /**
      * Returns the root mean square error for a complete training set.
@@ -145,7 +148,6 @@ public class NeuralNetwork  {
         double err = Math.sqrt(globalError / (len * outputCount));
         globalError = 0; // clear the accumulator
         return err;
-
     }
 
     /**
@@ -165,10 +167,15 @@ public class NeuralNetwork  {
      * @param input The input provide to the neural network.
      * @return The results from the output neurons.
      */
-    public double []computeOutputs(double input[]) {
+    public double[] computeOutputs(double input[]) {
         int i, j;
         final int hiddenIndex = inputCount;
         final int outIndex = inputCount + hiddenCount;
+
+        matrix = db.getAllMatrix();
+        thresholds = db.getAllThreshold();
+//        System.out.println(Arrays.toString(matrix));
+//        System.out.println(Arrays.toString(thresholds));
 
         for (i = 0; i < inputCount; i++) {
             fire[i] = input[i];
@@ -179,7 +186,6 @@ public class NeuralNetwork  {
 
         for (i = hiddenIndex; i < outIndex; i++) {
             double sum = thresholds[i];
-
             for (j = 0; j < inputCount; j++) {
                 sum += fire[j] * matrix[inx++];
             }
@@ -209,7 +215,7 @@ public class NeuralNetwork  {
      *
      * @param ideal What the output neurons should have yielded.
      */
-    public void calcError(double ideal[]) {
+    public void calcError(double[] ideal) {
         int i, j;
         final int hiddenIndex = inputCount;
         final int outputIndex = inputCount + hiddenCount;
@@ -248,7 +254,7 @@ public class NeuralNetwork  {
         for (i = hiddenIndex; i < outputIndex; i++) {
             for (j = 0; j < hiddenIndex; j++) {
                 accMatrixDelta[winx] += errorDelta[i] * fire[j];
-                error[j] += matrix[winx] * errorDelta[i];
+                error[j]+= matrix[winx] * errorDelta[i];
                 winx++;
             }
             accThresholdDelta[i] += errorDelta[i];
@@ -266,14 +272,14 @@ public class NeuralNetwork  {
         for (i = 0; i < matrix.length; i++) {
             matrixDelta[i] = (learnRate * accMatrixDelta[i]) + (momentum * matrixDelta[i]);
             matrix[i] += matrixDelta[i];
-            accMatrixDelta[i] = 0;
+            accMatrixDelta[i] = 0.0;
         }
 
         // process the thresholds
         for (i = inputCount; i < neuronCount; i++) {
             thresholdDelta[i] = learnRate * accThresholdDelta[i] + (momentum * thresholdDelta[i]);
             thresholds[i] += thresholdDelta[i];
-            accThresholdDelta[i] = 0;
+            accThresholdDelta[i] = 0.0;
         }
     }
 
@@ -285,13 +291,21 @@ public class NeuralNetwork  {
 
         for (i = 0; i < neuronCount; i++) {
             thresholds[i] = 0.5 - (Math.random());
-            thresholdDelta[i] = 0;
-            accThresholdDelta[i] = 0;
+            thresholdDelta[i] = 0.0;
+            accThresholdDelta[i] = 0.0;
         }
         for (i = 0; i < matrix.length; i++) {
             matrix[i] = 0.5 - (Math.random());
-            matrixDelta[i] = 0;
-            accMatrixDelta[i] = 0;
+            matrixDelta[i] = 0.0;
+            accMatrixDelta[i] = 0.0;
         }
     }
+
+    public void storeMemory(){
+        db.wipeMemory();
+        db.Create_MATRIX(matrix);
+        db.Create_THRESHOLD(thresholds);
+        Log.d("MEMORY:","STORED");
+    }
+
 }

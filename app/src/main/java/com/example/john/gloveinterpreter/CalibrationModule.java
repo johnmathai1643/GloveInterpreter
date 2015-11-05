@@ -31,6 +31,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     View rootView;
     private TextView alpha;
     private int i;
+    private int count;
     private TextToSpeech tts;
     private static final char[] Alphabets = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
 
@@ -43,9 +44,9 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static String address;
 
-    private  List<List<Double>> xorInputList;
-    private List<Double> xorInputRow;
-    public double[][] xorInput;
+    private  List<List<Double>> xorInputList,xorOutputList;
+    private List<Double> xorInputRow,xorOutputRow;
+    public double[][] xorInput,xorOutput;
     private ConnectedThread mConnectedThread;
 /*********** bluetooth components *****************************************************************************/
 
@@ -79,6 +80,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     }
 
     private void calibrate_on_touch(){
+        count = 0;
         alpha.setText("" + Alphabets[i]);
         speakOut("" + Alphabets[i]);
         i++;
@@ -112,8 +114,13 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
                              String sensor3 = tokens.nextToken().trim();
                              String sensor4 = tokens.nextToken().trim();
 
-                             List<Double> xorInputRow = Arrays.asList(Double.parseDouble(sensor0), Double.parseDouble(sensor1), Double.parseDouble(sensor2), Double.parseDouble(sensor3), Double.parseDouble(sensor4));
+                             xorInputRow = Arrays.asList(Double.parseDouble(sensor0), Double.parseDouble(sensor1), Double.parseDouble(sensor2), Double.parseDouble(sensor3), Double.parseDouble(sensor4));
                              xorInputList.add(xorInputRow);
+                             createOutputList(xorOutputRow,i);
+                             count++;
+                             Log.d("COUNT:", String.valueOf(count));
+                             Toast.makeText(getActivity(), "Complete", Toast.LENGTH_SHORT).show();
+
                              }
                      recDataString.delete(0, recDataString.length());                    //clear all string data
                      dataInPrint = " ";
@@ -147,7 +154,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
                 try {
                     btSocket.close();
                 } catch (IOException e2) { // exception
-                    xorInput = convert_array_list(xorInputList);
+
                 }
             }
             mConnectedThread = new ConnectedThread(btSocket);
@@ -173,11 +180,18 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     @Override
     public void onDestroy() {
         super.onDestroy();
-        alpha.setText("A");
+        alpha.setText("0");
         if (tts != null) {
             tts.stop();
             tts.shutdown();
         }
+        /*************************************************************************************************************/
+        if(btSocket!=null)
+            try{
+                btSocket.close();
+            } catch (IOException e2) {
+            }
+        /*************************************************************************************************************/
     }
 
     @Override
@@ -213,35 +227,48 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
         return  device.createRfcommSocketToServiceRecord(BTMODULEUUID);
     }
 
-    private double[][] convert_array_list(List<List<Double>> xorInputList){
-
-        final Double[][] xorInputDouble = new Double[xorInputList.size()][];
+    private double[][] convert_array_list_to_double(List<List<Double>> List){
+        final Double[][] myDouble = new Double[List.size()][];
         int i = 0;
-        for (List<Double> l : xorInputList)
-            xorInputDouble[i++] = l.toArray(new Double[l.size()]);
+        for (List<Double> l : List)
+            myDouble[i++] = l.toArray(new Double[l.size()]);
+        double [][] xorInput  = new double[myDouble.length][];
+        for (int j = 0; j < myDouble.length; i++)
+            for (int k = 0; i < myDouble[0].length; i++)
+                xorInput[j][k] = myDouble[j][k];
+        double[][] mydouble;
+        mydouble = unboxDouble(myDouble);
+        return mydouble;
+    }
 
-        double [][] xorInput  = new double[xorInputDouble.length][];
-        for (int j = 0; j < xorInputDouble.length; i++)
-            for (int k = 0; i < xorInputDouble[0].length; i++)
-                xorInput[j][k] = xorInputDouble[j][k];
+    private double[][] unboxDouble(Double D[][]){
+        double d[][] = new double[D.length][D[0].length];
+        for (int j = 0; j<=D.length; j++)
+            for (int k = 0; k<=D[0].length; k++)
+                d[j][k] = D[j][k].doubleValue();
+        return d;
+    }
 
-        return xorInput;
+    private void createOutputList(List xorOutputRow, int x){
+        for (int j = 0; j<=26; j++)
+          if(x==j)
+            xorOutputRow.add(1.0);
+          else
+            xorOutputRow.add(1.0);
+        xorOutputList.add(xorOutputRow);
     }
 
     private class ConnectedThread extends Thread {
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
-
         //Connect thread
         public ConnectedThread(BluetoothSocket socket) {
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
-
             try {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
             } catch (IOException e) { }
-
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
         }
