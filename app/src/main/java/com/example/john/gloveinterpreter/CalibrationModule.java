@@ -21,6 +21,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -33,9 +34,11 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     private int i;
     private int count;
     private TextToSpeech tts;
-    private static final char[] Alphabets = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
-
-/*********** bluetooth components *****************************************************************************/
+    private static final char[] Alphabets = {'0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+    private final String TAG = "Calibration Module";
+    private final int CALIBRATION_COUNT = 10;
+    public NeuralNetworkHandler myNeuralNetworkHandler;
+    /*********** bluetooth components *****************************************************************************/
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder recDataString = new StringBuilder();
@@ -44,14 +47,18 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static String address;
 
-    private  List<List<Double>> xorInputList,xorOutputList;
-    private List<Double> xorInputRow,xorOutputRow;
+    private List<List<Double>> xorInputList,xorOutputList;
+    private List<Double> xorInputRow;
+    private ArrayList<Double> xorOutputRow;
     public double[][] xorInput,xorOutput;
     private ConnectedThread mConnectedThread;
 /*********** bluetooth components *****************************************************************************/
 
-
     public CalibrationModule() {
+        xorInputRow =  new ArrayList<Double>();
+        xorOutputRow =  new ArrayList<Double>();
+        xorInputList = new ArrayList<>();
+        xorOutputList =  new ArrayList<>();
     }
 
     @Nullable
@@ -61,17 +68,20 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
         alpha = (TextView) rootView.findViewById(R.id.alpha);
         tts = new TextToSpeech(getActivity(), this);
 //      mHandler.postDelayed(mUpdateUITimerTask, 3000);
-        alpha.setText("0");
         i=0;
-
+        count = 0;
+        alpha.setText("" + Alphabets[i]);
         rootView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                calibrate_on_touch();
+                try {
+                    calibrate_on_touch();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 return false;
             }
         });
-
 /*****************************************************************/
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         checkBTState();
@@ -79,31 +89,46 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
         return rootView;
     }
 
-    private void calibrate_on_touch(){
-        count = 0;
+    private void calibrate_on_touch() throws IOException {
+        count=0;
+        if(i<26){
+        i++;
         alpha.setText("" + Alphabets[i]);
         speakOut("" + Alphabets[i]);
-        i++;
-        if (i == 27){
-            speakOut("Calibration complete.");
+        }
+        else{
+           speakOut("Calibration complete.");
+           xorInput = convert_array_list_to_double(xorInputList);
+           xorOutput = convert_array_list_to_double(xorOutputList);
+           Log.d(TAG, Arrays.deepToString(xorInput));
+           Log.d(TAG, Arrays.deepToString(xorOutput));
+           btSocket.close();
+           myNeuralNetworkHandler = new NeuralNetworkHandler(this.getActivity(),xorInput,xorOutput);
+//           myNeuralNetworkHandler = new NeuralNetworkHandler(this.getActivity());
+//           myNeuralNetworkHandler.create_data_files(xorInput,xorOutput);
+           myNeuralNetworkHandler.run_network();
+           myNeuralNetworkHandler.output_network();
         }
     }
 
     @Override
     public void onStart() {
         super.onStart();
+        Log.d(TAG,"onSTART");
+        count = 0;
         /********************************************************************************************************************/
           bluetoothIn = new Handler() {
                  public void handleMessage(android.os.Message msg) {
-                     if (msg.what == handlerState) {                                     //if message is what we want
+                     if (msg.what == handlerState) {                                   //if message is what we want
                      String readMessage = (String) msg.obj;                                                                // msg.arg1 = bytes from connect thread
                      recDataString.append(readMessage);
                      Log.d("DATA_2:", readMessage);
 
                      int endOfLineIndex = recDataString.indexOf("~");
+                         Log.d("DATA_3:", String.valueOf(endOfLineIndex));
                          if (endOfLineIndex > 0) {
                          String dataInPrint = recDataString.substring(0, endOfLineIndex);
-                         if (recDataString.charAt(0) == '#')
+                         if (recDataString.charAt(0) == '#' && count<CALIBRATION_COUNT)
                              {
                              dataInPrint = dataInPrint.substring(1);
 
@@ -119,11 +144,11 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
                              createOutputList(xorOutputRow,i);
                              count++;
                              Log.d("COUNT:", String.valueOf(count));
-                             Toast.makeText(getActivity(), "Complete", Toast.LENGTH_SHORT).show();
-
+                             if(count == CALIBRATION_COUNT)
+                                Toast.makeText(getActivity(), "Complete"+count, Toast.LENGTH_SHORT).show();
                              }
                      recDataString.delete(0, recDataString.length());                    //clear all string data
-                     dataInPrint = " ";
+                     dataInPrint = "";
                  }
 
                  }
@@ -136,14 +161,15 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     @Override
     public void onResume() {
         super.onResume();
+        Log.d(TAG,"onResume");
 
         /************************************************************************************************************/
-        address = getArguments().getString("section_number");
+        address = getArguments().getString("device_address");
         if(address!=null) {
-//            Log.d("Addressssssssssssssssssssss:",address);
-              Log.d("Address:","Done");
+            Log.d(TAG,address);
             BluetoothDevice device = btAdapter.getRemoteDevice(address);
             try {
+                Log.d(TAG,"Start Bluetooth");
                 btSocket = createBluetoothSocket(device);
             } catch (IOException e) {
                 Toast.makeText(getActivity(), "Socket creation failed", Toast.LENGTH_LONG).show();
@@ -197,6 +223,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        Log.d(TAG,"onAttach");
         ((MainActivity) activity).onSectionAttached(
                 getArguments().getInt("section_number"));
     }
@@ -232,10 +259,6 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
         int i = 0;
         for (List<Double> l : List)
             myDouble[i++] = l.toArray(new Double[l.size()]);
-        double [][] xorInput  = new double[myDouble.length][];
-        for (int j = 0; j < myDouble.length; i++)
-            for (int k = 0; i < myDouble[0].length; i++)
-                xorInput[j][k] = myDouble[j][k];
         double[][] mydouble;
         mydouble = unboxDouble(myDouble);
         return mydouble;
@@ -243,18 +266,15 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
 
     private double[][] unboxDouble(Double D[][]){
         double d[][] = new double[D.length][D[0].length];
-        for (int j = 0; j<=D.length; j++)
-            for (int k = 0; k<=D[0].length; k++)
+        for (int j = 0; j<D.length; j++)
+            for (int k = 0; k<D[0].length; k++)
                 d[j][k] = D[j][k].doubleValue();
         return d;
     }
 
     private void createOutputList(List xorOutputRow, int x){
-        for (int j = 0; j<=26; j++)
-          if(x==j)
-            xorOutputRow.add(1.0);
-          else
-            xorOutputRow.add(1.0);
+        Log.d(TAG, String.valueOf(x));
+        xorOutputRow = Arrays.asList((x == 0) ? 0.0 : 0.0,(x == 1) ? 1.0 : 0.0,(x == 2) ? 1.0 : 0.0,(x == 3) ? 1.0 : 0.0,(x == 4) ? 1.0 : 0.0,(x == 5) ? 1.0 : 0.0,(x == 6) ? 6 : 0.0,(x == 7) ? 1.0 : 0.0,(x == 8) ? 1.0 : 0.0,(x == 9) ? 1.0 : 0.0,(x == 10) ? 1.0 : 0.0,(x == 11) ? 1.0 : 0.0,(x == 12) ? 1.0 : 0.0,(x == 13) ? 1.0 : 0.0,(x == 14) ? 1.0 : 0.0,(x == 15) ? 1.0 : 0.0,(x == 16) ? 1.0 : 0.0,(x == 17) ? 1.0 : 0.0,(x == 18) ? 1.0 : 0.0,(x == 19) ? 1.0 : 0.0,(x == 20) ? 1.0 : 0.0,(x == 21) ? 1.0 : 0.0,(x == 22) ? 1.0 : 0.0,(x == 23) ? 1.0 : 0.0,(x == 24) ? 1.0 : 0.0,(x == 25) ? 1.0 : 0.0,(x == 26) ? 1.0 : 0.0);
         xorOutputList.add(xorOutputRow);
     }
 
@@ -280,6 +300,7 @@ public class CalibrationModule extends Fragment implements TextToSpeech.OnInitLi
                 try {
                     bytes = mmInStream.read(buffer);
                     String readMessage = new String(buffer, 0, bytes);
+//                    Log.d(TAG,"Sending to handler");
                     // Send to UI
                     bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
                 } catch (IOException e) {

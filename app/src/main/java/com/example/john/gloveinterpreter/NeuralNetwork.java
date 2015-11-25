@@ -100,18 +100,20 @@ public class NeuralNetwork  {
     private Context context;
     /**
      * Construct the neural network.
-     *  @param inputCount The number of input neurons.
+     * @param inputCount The number of input neurons.
      * @param hiddenCount The number of hidden neurons
      * @param outputCount The number of output neurons
      * @param learnRate The learning rate to be used when training.
      * @param momentum The momentum to be used when training.
      * @param context
+     * @param xorInput
+     * @param xorIdeal
      */
     public NeuralNetwork(int inputCount,
                          int hiddenCount,
                          int outputCount,
                          double learnRate,
-                         double momentum, Context context) {
+                         double momentum, Context context, double[][] xorInput, double[][] xorIdeal) {
 
         this.learnRate = learnRate;
         this.momentum = momentum;
@@ -135,6 +137,7 @@ public class NeuralNetwork  {
         accMatrixDelta = new double[weightCount];
         thresholdDelta = new double[neuronCount];
         db = new SQLiteHelper(context);
+        storedata(xorInput,xorIdeal);
         reset();
     }
 
@@ -204,6 +207,13 @@ public class NeuralNetwork  {
             }
             fire[i] = threshold(sum);
             result[i-outIndex] = fire[i];
+        }
+
+        for (i = 0; i < outputCount; i++){
+            if (result[i]<0.5)
+                result[i] = Math.floor(result[i]);
+            else
+                result[i] = Math.ceil(result[i]);
         }
 
         return result;
@@ -302,10 +312,16 @@ public class NeuralNetwork  {
     }
 
     public void storeMemory(){
-        db.wipeMemory();
+        db.wipematrixMemory();
         db.Create_MATRIX(matrix);
         db.Create_THRESHOLD(thresholds);
         Log.d("MEMORY:","STORED");
     }
 
+    public void storedata(double[][] xorInput, double[][] xorIdeal) {
+        db.wipedataMemory();
+        db.Create_INPUTS(xorInput);
+        db.Create_OUTPUTS(xorIdeal);
+        Log.d("DATA:","I/O DATA STORED");
+    }
 }

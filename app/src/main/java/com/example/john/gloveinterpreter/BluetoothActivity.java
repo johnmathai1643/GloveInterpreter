@@ -22,6 +22,7 @@ public class BluetoothActivity extends Activity {
 
     TextView textView1;
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
+    public static String DEVICE_ACTIVITY = "device";
 
     // Member fields
     private BluetoothAdapter mBtAdapter;
@@ -71,9 +72,11 @@ public class BluetoothActivity extends Activity {
             //Mac address
             String info = ((TextView) v).getText().toString();
             String address = info.substring(info.length() - 17);
-
+            Intent intent = getIntent();
+            String device_activity = intent.getStringExtra(MainActivity.DEVICE_ACTIVITY);
             Intent i = new Intent(BluetoothActivity.this, MainActivity.class);
             i.putExtra(EXTRA_DEVICE_ADDRESS, address);
+            i.putExtra(DEVICE_ACTIVITY, device_activity);
             startActivity(i);
         }
     };

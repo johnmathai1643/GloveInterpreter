@@ -10,4 +10,17 @@
         android:id="@+id/editText"
         android:layout_weight="0.08"
         android:text="Speech" />
+
+    <TextView
+        android:layout_width="194dp"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="0"
+        android:id="@+id/alpha"
+        android:layout_gravity="center_horizontal"
+        android:textSize="50sp"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        />
+
 </LinearLayout>

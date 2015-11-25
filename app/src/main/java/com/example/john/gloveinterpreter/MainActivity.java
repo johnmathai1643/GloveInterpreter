@@ -25,9 +25,9 @@ public class MainActivity extends ActionBarActivity
      */
     private CharSequence mTitle;
 
-    private static String address;
+    private static String address,device_activity;
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
-
+    public static String DEVICE_ACTIVITY = "device";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,6 +37,7 @@ public class MainActivity extends ActionBarActivity
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
         mTitle = getTitle();
         address = null;
+        device_activity = null;
         // Set up the drawer.
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
@@ -48,17 +49,27 @@ public class MainActivity extends ActionBarActivity
         super.onResume();
         Intent intent = getIntent();
         address = intent.getStringExtra(BluetoothActivity.EXTRA_DEVICE_ADDRESS);
+        device_activity = intent.getStringExtra(BluetoothActivity.DEVICE_ACTIVITY);
         if(address!=null) {
-            Fragment Calibrationfragment = new CalibrationModule();
-            Bundle bundle = new Bundle();
-            bundle.putInt("section_number", 1);
-            bundle.putString(EXTRA_DEVICE_ADDRESS, address);
-            Calibrationfragment.setArguments(bundle);
-
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            fragmentManager.beginTransaction()
-                    .replace(R.id.container, Calibrationfragment)
-                    .commit();
+            Fragment fragment = null;
+            if(device_activity == "speech") {
+                fragment = new SpeechModule();
+                Bundle bundle = new Bundle();
+                bundle.putInt("section_number", 0);
+                bundle.putString(EXTRA_DEVICE_ADDRESS, address);
+                fragment.setArguments(bundle);
+            }
+            else if(device_activity == "calibrate") {
+                fragment = new CalibrationModule();
+                Bundle bundle = new Bundle();
+                bundle.putInt("section_number", 1);
+                bundle.putString(EXTRA_DEVICE_ADDRESS, address);
+                fragment.setArguments(bundle);
+            }
+                FragmentManager fragmentManager = getSupportFragmentManager();
+                fragmentManager.beginTransaction()
+                        .replace(R.id.container, fragment)
+                        .commit();
         }
     }
 
@@ -135,8 +146,15 @@ public class MainActivity extends ActionBarActivity
             this.startActivity(intent);
             return true;
         }
-        if (id == R.id.action_devices) {
+        if (id == R.id.action_speech) {
             Intent intent = new Intent(this, BluetoothActivity.class);
+            intent.putExtra(DEVICE_ACTIVITY,"speech");
+            this.startActivity(intent);
+            return true;
+        }
+        if (id == R.id.action_calibrate) {
+            Intent intent = new Intent(this, BluetoothActivity.class);
+            intent.putExtra(DEVICE_ACTIVITY,"calibrate");
             this.startActivity(intent);
             return true;
         }
